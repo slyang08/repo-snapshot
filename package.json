@@ -1,0 +1,33 @@
+{
+  "name": "repo-snapshot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "bin": {
+    "repo-snapshot": "./dist/index.js"
+  },
+  "scripts": {
+    "dev": "node --loader ts-node/esm src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "lint": "eslint . --ext .ts",
+    "format": "prettier --write ."
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/glob": "^9.0.0",
+    "@types/node": "^24.3.1",
+    "commander": "^14.0.0",
+    "eslint": "^9.35.0",
+    "prettier": "^3.6.2",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.9.2"
+  },
+  "dependencies": {
+    "glob": "^11.0.3",
+    "simple-git": "^3.28.0"
+  }
+}

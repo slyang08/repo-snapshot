@@ -1,0 +1,131 @@
+#!/usr/bin/env node
+import { Command } from "commander";
+import { glob } from "glob";
+
+import fs from "fs";
+import path from "path";
+
+import { buildTree } from "./utils/treeStructure.js";
+import { getFileExtension } from "./utils/fileUtils.js";
+import { getGitInfo } from "./utils/gitInfo.js";
+
+const program = new Command();
+
+program
+  .name("repo-snapshot")
+  .description("Package repository context into a single text file")
+  .version("0.1.0")
+  .argument("[paths...]", "Files or directories to analyze", ["."])
+  .option("-o, --output <file>", "Output file")
+  .option(
+    "--include <patterns>",
+    'Comma-separated glob patterns, e.g. "*.js,*.ts"'
+  )
+  .option(
+    "--exclude <patterns>",
+    'Comma-separated glob patterns, e.g. "node_modules/**,*.log"'
+  )
+  .parse(process.argv);
+
+const options = program.opts();
+const paths = program.args;
+
+function parsePatterns(patterns?: string): string[] {
+  if (!patterns) return [];
+  return patterns.split(",").map((p) => p.trim()).filter(Boolean);
+}
+
+const includePatterns = parsePatterns(options.include);
+const excludePatterns = parsePatterns(options.exclude);
+
+async function main() {
+  const absPaths = paths.map((p) => path.resolve(p));
+  console.error("Analyzing paths:", absPaths);
+
+  if (!absPaths[0]) {
+    console.error("No valid path provided");
+    process.exit(1);
+  }
+
+  let output = "# Repository Context\n\n";
+
+  // File system path
+  output += "## File System Location\n\n";
+  output += absPaths.join("\n") + "\n\n";
+
+  // Git Info
+  output += await getGitInfo(absPaths[0]);
+
+  // Collect files with glob
+  let fileList: string[] = [];
+  for (const p of absPaths) {
+    const stat = fs.statSync(p);
+    if (stat.isDirectory()) {
+      const patterns = includePatterns.length > 0 ? includePatterns : ["**/*"];
+      for (const pattern of patterns) {
+        const matches = await glob(pattern, {
+          cwd: p,
+          absolute: true,
+          nodir: true,
+          ignore: excludePatterns,
+        });
+        fileList.push(...matches);
+      }
+    } else {
+      fileList.push(p);
+    }
+  }
+
+  // Deduping + Sorting
+  fileList = [...new Set(fileList)];
+  fileList.sort();
+
+  const rootPath = fs.statSync(absPaths[0]).isDirectory()
+  ? absPaths[0]
+  : path.dirname(absPaths[0]);
+
+  // Output structure as tree
+  output += "## Structure\n\n";
+  output += path.basename(rootPath) + "\n";
+  // --- Build tree structure ---
+  output += buildTree(fileList, rootPath);
+  output += "\n\n";
+
+  // Output file contents
+  let totalLines = 0;
+  const skippedFiles: string[] = [];
+
+  if (fileList.length > 0) {
+    output += "## File Contents\n\n";
+    for (const file of fileList) {
+      const relPath = path.relative(absPaths[0], file);
+      output += `### File: ${relPath}\n`;
+      // Simply select language based on file extension highlight
+      output += "```" + getFileExtension(file) + "\n";
+      try {
+        const content = fs.readFileSync(file, "utf-8");
+        output += content + "\n";
+        totalLines += content.split("\n").length;
+      } catch {
+        output += "[Could not read file]\n";
+      }
+      output += "```\n\n";
+    }
+  }
+
+  // Report skipped files to stderr
+  if (skippedFiles.length > 0) {
+    console.error("Skipped files (could not read):");
+    skippedFiles.forEach((f) => console.error(" - " + f));
+  }
+
+  // Output to file or stdout
+  if (options.output) {
+    fs.writeFileSync(options.output, output, "utf-8");
+    console.error(`Output written to ${options.output}`);
+  } else {
+    process.stdout.write(output);
+  }
+}
+
+main();
