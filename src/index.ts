@@ -15,7 +15,7 @@ program
   .name("repo-snapshot")
   .description("Package repository context into a single text file")
   .version("0.1.0")
-  .argument("[paths...]", "Files or directories to analyze", ["."])
+  .argument("[paths...]", "Files or directories to analyze")
   .option("-o, --output <file>", "Output file")
   .option(
     "--include <patterns>",
@@ -28,7 +28,7 @@ program
   .parse(process.argv);
 
 const options = program.opts();
-const paths = program.args;
+const paths = program.args.length > 0 ? program.args : ["."];
 
 function parsePatterns(patterns?: string): string[] {
   if (!patterns) return [];
@@ -86,7 +86,7 @@ async function main() {
 
   // Output structure as tree
   output += "## Structure\n\n";
-  output += path.basename(rootPath) + "\n";
+  output += path.basename(rootPath) + "/\n";
   // --- Build tree structure ---
   output += buildTree(fileList, rootPath);
   output += "\n\n";
@@ -108,10 +108,16 @@ async function main() {
         totalLines += content.split("\n").length;
       } catch {
         output += "[Could not read file]\n";
+        skippedFiles.push(file);
       }
       output += "```\n\n";
     }
   }
+
+  // Summary
+  output += "## Summary\n";
+  output += `- Total files: ${fileList.length}\n`;
+  output += `- Total lines: ${totalLines}\n`;
 
   // Report skipped files to stderr
   if (skippedFiles.length > 0) {

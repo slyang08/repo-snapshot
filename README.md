@@ -14,15 +14,34 @@ A Command-line interface (CLI) tool to package and summarize repository structur
 
 ## Installation
 
-To install as a global command line tool via `pnpm`:
+To install as a global command line tool via two ways with `npm` or `pnpm`:
 
 ```
 git clone https://github.com/slyang08/repo-snapshot.git
 cd repo-snapshot
-pnpm install
-pnpm build
-pnpm link --global
 ```
+
+1. With `npm`:
+```
+npm install         # Install all dependencies
+npm run build       # Compile TypeScript to dist/
+npm link --global   # Install global CLI
+```
+
+2. With `pnpm`:
+```
+- If you have not installed pnpm, install it via:
+  - macOS: brew install pnpm
+  - Windows: winget install -e --id pnpm.pnpm or npm install -g pnpm
+  - Linux: npm install -g pnpm
+
+1. pnpm install         # Install all dependencies
+2. pnpm build           # Compile TypeScript to dist/
+3. pnpm link --global   # Install global CLI
+```
+
+> **Note:** For best consistency and to avoid dependency conflicts, use the same package manager (`npm` or `pnpm`) throughout your workflow.  
+> Also ensure you have Node.js version 18 or newer installed.
 
 ## Usage
 

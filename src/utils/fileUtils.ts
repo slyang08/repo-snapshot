@@ -4,7 +4,7 @@ const extensionMap = new Map<string, string>([
   [".ts", "TypeScript"],
   [".js", "JavaScript"],
   [".json", "json"],
-  [".md", "md"],
+  [".md", "Markdown"],
   [".py", "Python"],
   [".java", "Java"],
   [".cpp", "Cpp"],

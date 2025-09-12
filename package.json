@@ -15,8 +15,8 @@
     "format": "prettier --write ."
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "Sheng-Lin Yang",
+  "license": "Apache License 2.0",
   "devDependencies": {
     "@types/glob": "^9.0.0",
     "@types/node": "^24.3.1",
