@@ -8,7 +8,8 @@ A Command-line interface (CLI) tool to package and summarize repository structur
 - Detects Git repository status, branch, and latest commit details.
 - Displays a visual project tree structure.
 - Shows contents of all relevant files with clear section delimiters and syntax highlighting.
-- Provides basic statistics: total number of files, total lines.
+- Filter recent files: Only include files modified within the last 7 days using the `--recent` flag.
+- Provides basic statistics: total number of files, total lines, and recent files count.
 - Handles standard output and error output for clear separation of results and errors.
 - Skips files or directories that cannot be accessed, displaying error messages to stderr.
 
@@ -53,6 +54,7 @@ repo-snapshot [paths...] [options]
 - `-o, --output <file>`: Write output to the specified file.
 - `--include <patterns>`: Comma-separated glob patterns to include (e.g.: `*.js,*.ts`).
 - `--exclude <patterns>`: Comma-separated glob patterns to exclude (e.g.: `node_modules/**,*.log`).
+- `-r, --recent`: Only include files modified within the last 7 days (based on file system modification time).
 - `-v, --version`: Print version and tool name.
 - `-h, --help`: Show usage help.
 
@@ -76,6 +78,15 @@ repo-snapshot . --include "**/*.ts"
 
 # Package TypeScript files, Markdown files, and without node_modules and dist
 repo-snapshot . --include "**/*.ts,*.md" --exclude "dist/**"
+
+# Package only files modified in the last 7 days
+repo-snapshot . --recent
+
+# Package recent files with output to file
+repo-snapshot . --recent --output recent-changes.txt
+
+# Combine recent filter with other options
+repo-snapshot . --recent --include "**/*.ts" --exclude "node_modules/**"
 ```
 
 ## Output
@@ -86,7 +97,7 @@ The tool prints repository information, including:
 - **Git Info**: Latest commit hash, branch, author, and date if inside a git repository.
 - **Structure**: Tree visualization of files and directories, with directories ending in `/`.
 - **File Contents**: Contents of files within code blocks with language syntax highlighting.
-- **Summary**: Counts of total files and lines processed.
+- **Summary**: Counts of total files and lines processed. When using `--recent`, also shows the count of recently modified files.
 - **Warnings**: A list of files that could not be read printed to stderr during execution.
 
 ## License
