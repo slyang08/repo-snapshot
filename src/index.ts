@@ -25,7 +25,7 @@ program
     "--exclude <patterns>",
     'Comma-separated glob patterns, e.g. "node_modules/**,*.log"'
   )
-  .option("-r, --recent", "Only include files modified within the last 7 days")
+  .option("-r, --recent [days]", "Only include files modified within the last N days", "7")
   .parse(process.argv);
 
 const options = program.opts();
@@ -84,8 +84,9 @@ async function main() {
   // Filter for recent files if --recent flag is set
   let recentFileCount = 0;
   if (options.recent) {
+    const recentDays = parseInt(options.recent) || 7; // Parse the days parameter, default to 7
     fileList = fileList.filter(file => {
-      const isRecent = isRecentlyModified(file, 7);
+      const isRecent = isRecentlyModified(file, recentDays);
       if (isRecent) recentFileCount++;
       return isRecent;
     });
@@ -130,7 +131,8 @@ async function main() {
   output += `- Total files: ${fileList.length}\n`;
   output += `- Total lines: ${totalLines}\n`;
   if (options.recent) {
-    output += `- Recent files (last 7 days): ${recentFileCount}\n`;
+    const recentDays = parseInt(options.recent) || 7;
+    output += `- Recent files (last ${recentDays} days): ${recentFileCount}\n`;
   }
 
   // Report skipped files to stderr

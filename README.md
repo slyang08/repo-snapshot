@@ -82,6 +82,9 @@ repo-snapshot . --include "**/*.ts,*.md" --exclude "dist/**"
 # Package only files modified in the last 7 days
 repo-snapshot . --recent
 
+# Package only files modified (within last N days)
+repomaster . -r 2
+
 # Package recent files with output to file
 repo-snapshot . --recent --output recent-changes.txt
 
