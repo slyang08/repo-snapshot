@@ -6,7 +6,7 @@ import fs from "fs";
 import path from "path";
 
 import { buildTree } from "./utils/treeStructure.js";
-import { getFileExtension } from "./utils/fileUtils.js";
+import { getFileExtension, isRecentlyModified } from "./utils/fileUtils.js";
 import { getGitInfo } from "./utils/gitInfo.js";
 
 const program = new Command();
@@ -25,6 +25,7 @@ program
     "--exclude <patterns>",
     'Comma-separated glob patterns, e.g. "node_modules/**,*.log"'
   )
+  .option("-r, --recent [days]", "Only include files modified within the last N days", "7")
   .parse(process.argv);
 
 const options = program.opts();
@@ -80,6 +81,17 @@ async function main() {
   fileList = [...new Set(fileList)];
   fileList.sort();
 
+  // Filter for recent files if --recent flag is set
+  let recentFileCount = 0;
+  if (options.recent) {
+    const recentDays = parseInt(options.recent) || 7; // Parse the days parameter, default to 7
+    fileList = fileList.filter(file => {
+      const isRecent = isRecentlyModified(file, recentDays);
+      if (isRecent) recentFileCount++;
+      return isRecent;
+    });
+  }
+
   const rootPath = fs.statSync(absPaths[0]).isDirectory()
   ? absPaths[0]
   : path.dirname(absPaths[0]);
@@ -118,6 +130,10 @@ async function main() {
   output += "## Summary\n";
   output += `- Total files: ${fileList.length}\n`;
   output += `- Total lines: ${totalLines}\n`;
+  if (options.recent) {
+    const recentDays = parseInt(options.recent) || 7;
+    output += `- Recent files (last ${recentDays} days): ${recentFileCount}\n`;
+  }
 
   // Report skipped files to stderr
   if (skippedFiles.length > 0) {
