@@ -54,6 +54,7 @@ repo-snapshot [paths...] [options]
 - `-o, --output <file>`: Write output to the specified file.
 - `--include <patterns>`: Comma-separated glob patterns to include (e.g.: `*.js,*.ts`).
 - `--exclude <patterns>`: Comma-separated glob patterns to exclude (e.g.: `node_modules/**,*.log`).
+- `--grep <keyword>`: Only includes files that contain the keyword.
 - `-r, --recent`: Only include files modified within the last 7 days (based on file system modification time).
 - `-v, --version`: Print version and tool name.
 - `-h, --help`: Show usage help.
@@ -90,6 +91,9 @@ repo-snapshot . --recent --output recent-changes.txt
 
 # Combine recent filter with other options
 repo-snapshot . --recent --include "**/*.ts" --exclude "node_modules/**"
+
+# Only includes files containing the keyword
+repo-snapshot . --grep "Apache"
 ```
 
 ## Output
