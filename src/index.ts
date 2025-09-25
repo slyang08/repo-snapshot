@@ -25,7 +25,8 @@ program
     "--exclude <patterns>",
     'Comma-separated glob patterns, e.g. "node_modules/**,*.log"'
   )
-  .option("-r, --recent [days]", "Only include files modified within the last N days", "7")
+  .option("-r, --recent [days]", "Only include files modified within the last N days")
+  .option("--grep <keyword>", "Only include files that contain the keyword")
   .parse(process.argv);
 
 const options = program.opts();
@@ -48,21 +49,12 @@ async function main() {
     process.exit(1);
   }
 
-  let output = "# Repository Context\n\n";
-
-  // File system path
-  output += "## File System Location\n\n";
-  output += absPaths.join("\n") + "\n\n";
-
-  // Git Info
-  output += await getGitInfo(absPaths[0]);
-
   // Collect files with glob
   let fileList: string[] = [];
   for (const p of absPaths) {
     const stat = fs.statSync(p);
     if (stat.isDirectory()) {
-      const patterns = includePatterns.length > 0 ? includePatterns : ["**/*"];
+      const patterns = includePatterns.length > 0 ? includePatterns : ["*", "**/*"];
       for (const pattern of patterns) {
         const matches = await glob(pattern, {
           cwd: p,
@@ -81,57 +73,89 @@ async function main() {
   fileList = [...new Set(fileList)];
   fileList.sort();
 
+  // Output file contents
+  let totalLines = 0;
+  const skippedFiles: string[] = [];
+  let matchedFiles: string[] = [];
+
+  // If --grep is specified, first filter out files matching the content.
+  if (options.grep) {
+    for (const file of fileList) {
+      try {
+        const content = fs.readFileSync(file, "utf-8");
+        const regex = new RegExp(options.grep, "i");
+        if (regex.test(content)) {
+          matchedFiles.push(file);
+        }
+      } catch (error) {
+        skippedFiles.push(file);
+      }
+    }
+    fileList = matchedFiles;
+  }
+
   // Filter for recent files if --recent flag is set
   let recentFileCount = 0;
   if (options.recent) {
-    const recentDays = parseInt(options.recent) || 7; // Parse the days parameter, default to 7
+    const recentDays = isNaN(options.recent) ? 7 : parseInt(options.recent, 10) || 7; // Parse the days parameter, default to 7
     fileList = fileList.filter(file => {
       const isRecent = isRecentlyModified(file, recentDays);
       if (isRecent) recentFileCount++;
       return isRecent;
     });
   }
-
+  
+  // Output information
   const rootPath = fs.statSync(absPaths[0]).isDirectory()
   ? absPaths[0]
   : path.dirname(absPaths[0]);
 
-  // Output structure as tree
+  let output = "# Repository Context\n\n";
+  // File system path
+  output += "## File System Location\n\n";
+  output += absPaths.join("\n") + "\n\n";
+
+  // Git Info
+  output += await getGitInfo(absPaths[0]);
+
+  // Build tree structure
   output += "## Structure\n\n";
   output += path.basename(rootPath) + "/\n";
-  // --- Build tree structure ---
   output += buildTree(fileList, rootPath);
   output += "\n\n";
 
-  // Output file contents
-  let totalLines = 0;
-  const skippedFiles: string[] = [];
-
+  // File Contents
   if (fileList.length > 0) {
     output += "## File Contents\n\n";
     for (const file of fileList) {
       const relPath = path.relative(absPaths[0], file);
-      output += `### File: ${relPath}\n`;
-      // Simply select language based on file extension highlight
-      output += "```" + getFileExtension(file) + "\n";
       try {
         const content = fs.readFileSync(file, "utf-8");
-        output += content + "\n";
+        output += `### File: ${relPath}\n`;
+        output += "```" + getFileExtension(file) + "\n";
+        output += content + "\n```\n\n";
         totalLines += content.split("\n").length;
       } catch {
-        output += "[Could not read file]\n";
-        skippedFiles.push(file);
+        // If no grep, shows error messages
+        if (!options.grep) {
+          output += `### File: ${relPath}\n[Could not read file]\n\n`;
+          output += "```\n\n";
+          skippedFiles.push(file);
+        }
       }
-      output += "```\n\n";
     }
   }
 
   // Summary
   output += "## Summary\n";
-  output += `- Total files: ${fileList.length}\n`;
+  if (options.grep) {
+    output += `- Files matched: ${matchedFiles.length}\n`;
+  } else {
+    output += `- Total files: ${fileList.length}\n`;
+  }
   output += `- Total lines: ${totalLines}\n`;
   if (options.recent) {
-    const recentDays = parseInt(options.recent) || 7;
+    const recentDays = isNaN(options.recent) ? 7 : parseInt(options.recent, 10) || 7;
     output += `- Recent files (last ${recentDays} days): ${recentFileCount}\n`;
   }
 
