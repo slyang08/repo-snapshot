@@ -55,6 +55,7 @@ repo-snapshot [paths...] [options]
 - `--include <patterns>`: Comma-separated glob patterns to include (e.g.: `*.js,*.ts`).
 - `--exclude <patterns>`: Comma-separated glob patterns to exclude (e.g.: `node_modules/**,*.log`).
 - `-r, --recent`: Only include files modified within the last 7 days (based on file system modification time).
+- `--preview <lines>`: Shows only the first N lines of each file instead of full content.
 - `-v, --version`: Print version and tool name.
 - `-h, --help`: Show usage help.
 
@@ -90,6 +91,9 @@ repo-snapshot . --recent --output recent-changes.txt
 
 # Combine recent filter with other options
 repo-snapshot . --recent --include "**/*.ts" --exclude "node_modules/**"
+
+# Shows only the first 15 lines of each file instead of full content
+repo-snapshot . --preview 15
 ```
 
 ## Output
@@ -100,6 +104,7 @@ The tool prints repository information, including:
 - **Git Info**: Latest commit hash, branch, author, and date if inside a git repository.
 - **Structure**: Tree visualization of files and directories, with directories ending in `/`.
 - **File Contents**: Contents of files within code blocks with language syntax highlighting.
+  - **preview**: With optional feature `--preview` that displays N lines of each file instead of full content.
 - **Summary**: Counts of total files and lines processed. When using `--recent`, also shows the count of recently modified files.
 - **Warnings**: A list of files that could not be read printed to stderr during execution.
 

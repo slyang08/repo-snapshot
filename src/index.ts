@@ -26,6 +26,7 @@ program
     'Comma-separated glob patterns, e.g. "node_modules/**,*.log"'
   )
   .option("-r, --recent [days]", "Only include files modified within the last N days", "7")
+  .option("--preview <lines>", "Only show the first N lines of each file")
   .parse(process.argv);
 
 const options = program.opts();
@@ -111,18 +112,27 @@ async function main() {
     output += "## File Contents\n\n";
     for (const file of fileList) {
       const relPath = path.relative(absPaths[0], file);
-      output += `### File: ${relPath}\n`;
-      // Simply select language based on file extension highlight
-      output += "```" + getFileExtension(file) + "\n";
       try {
         const content = fs.readFileSync(file, "utf-8");
-        output += content + "\n";
-        totalLines += content.split("\n").length;
+        const lines = content.split("\n");
+        let displayedLines = lines;
+
+        if (options.preview) {
+          const previewCount = parseInt(options.preview, 10);
+          if (!isNaN(previewCount) && previewCount > 0 && lines.length > previewCount) {
+            displayedLines = lines.slice(0, previewCount);
+            displayedLines.push("...(truncated)");
+          }
+        }
+        output += `### File: ${relPath}\n`;
+        // Simply select language based on file extension highlight
+        output += "```" + getFileExtension(file) + "\n";
+        output += displayedLines.join("\n") + "\n```\n\n";
+        totalLines += displayedLines.length;
       } catch {
         output += "[Could not read file]\n";
         skippedFiles.push(file);
       }
-      output += "```\n\n";
     }
   }
 
