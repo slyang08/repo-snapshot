@@ -27,6 +27,7 @@ program
   )
   .option("-r, --recent [days]", "Only include files modified within the last N days")
   .option("--grep <keyword>", "Only include files that contain the keyword")
+  .option("--preview <lines>", "Only show the first N lines of each file")
   .parse(process.argv);
 
 const options = program.opts();
@@ -131,10 +132,21 @@ async function main() {
       const relPath = path.relative(absPaths[0], file);
       try {
         const content = fs.readFileSync(file, "utf-8");
+        const lines = content.split("\n");
+        let displayedLines = lines;
+
+        if (options.preview) {
+          const previewCount = parseInt(options.preview, 10);
+          if (!isNaN(previewCount) && previewCount > 0 && lines.length > previewCount) {
+            displayedLines = lines.slice(0, previewCount);
+            displayedLines.push("...(truncated)");
+          }
+        }
         output += `### File: ${relPath}\n`;
+        // Simply select language based on file extension highlight
         output += "```" + getFileExtension(file) + "\n";
-        output += content + "\n```\n\n";
-        totalLines += content.split("\n").length;
+        output += displayedLines.join("\n") + "\n```\n\n";
+        totalLines += displayedLines.length;
       } catch {
         // If no grep, shows error messages
         if (!options.grep) {

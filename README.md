@@ -54,8 +54,9 @@ repo-snapshot [paths...] [options]
 - `-o, --output <file>`: Write output to the specified file.
 - `--include <patterns>`: Comma-separated glob patterns to include (e.g.: `*.js,*.ts`).
 - `--exclude <patterns>`: Comma-separated glob patterns to exclude (e.g.: `node_modules/**,*.log`).
-- `--grep <keyword>`: Only includes files that contain the keyword.
 - `-r, --recent`: Only include files modified within the last 7 days (based on file system modification time).
+- `--grep <keyword>`: Only includes files that contain the keyword.
+- `--preview <lines>`: Shows only the first N lines of each file instead of full content.
 - `-v, --version`: Print version and tool name.
 - `-h, --help`: Show usage help.
 
@@ -94,6 +95,9 @@ repo-snapshot . --recent --include "**/*.ts" --exclude "node_modules/**"
 
 # Only includes files containing the keyword
 repo-snapshot . --grep "Apache"
+
+# Shows only the first 15 lines of each file instead of full content
+repo-snapshot . --preview 15
 ```
 
 ## Output
@@ -104,7 +108,8 @@ The tool prints repository information, including:
 - **Git Info**: Latest commit hash, branch, author, and date if inside a git repository.
 - **Structure**: Tree visualization of files and directories, with directories ending in `/`.
 - **File Contents**: Contents of files within code blocks with language syntax highlighting.
-  - **Grep**: Using `--grep` that only includes files containing the keyword.
+  - **grep**: Using `--grep` that only includes files containing the keyword.
+  - **preview**: With optional feature `--preview` that displays N lines of each file instead of full content.
 - **Summary**: Counts of total files and lines processed. When using `--recent`, also shows the count of recently modified files.
 - **Warnings**: A list of files that could not be read printed to stderr during execution.
 
