@@ -104,6 +104,7 @@ The tool prints repository information, including:
 - **Git Info**: Latest commit hash, branch, author, and date if inside a git repository.
 - **Structure**: Tree visualization of files and directories, with directories ending in `/`.
 - **File Contents**: Contents of files within code blocks with language syntax highlighting.
+  - **Grep**: Using `--grep` that only includes files containing the keyword.
 - **Summary**: Counts of total files and lines processed. When using `--recent`, also shows the count of recently modified files.
 - **Warnings**: A list of files that could not be read printed to stderr during execution.
 
