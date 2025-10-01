@@ -23,6 +23,7 @@ cd repo-snapshot
 ```
 
 1. With `npm`:
+
 ```
 npm install         # Install all dependencies
 npm run build       # Compile TypeScript to dist/
@@ -30,6 +31,7 @@ npm link --global   # Install global CLI
 ```
 
 2. With `pnpm`:
+
 ```
 - If you have not installed pnpm, install it via:
   - macOS: brew install pnpm
@@ -98,8 +100,25 @@ repo-snapshot . --grep "Apache"
 
 # Shows only the first 15 lines of each file instead of full content
 repo-snapshot . --preview 15
+
+# With a .repopal-config.toml present in the repo root
+repo-snapshot .
+
+# CLI arguments override config values
+repo-snapshot . --output output.md
 ```
 
+TOML configuration file `.repopal-config.toml` example:
+
+```toml
+output = "output.txt"
+include = "**/*.ts"
+grep = "Apache"
+output = "output.md"
+# etc...
+```
+
+```
 ## Output
 
 The tool prints repository information, including:
@@ -115,5 +134,6 @@ The tool prints repository information, including:
 
 ## License
 
-This project is licensed under the Apache License 2.0.  
+This project is licensed under the Apache License 2.0.
 See the [LICENSE](LICENSE) file for details.
+```
