@@ -8,6 +8,7 @@ import path from "path";
 import { buildTree } from "./utils/treeStructure.js";
 import { getFileExtension, isRecentlyModified } from "./utils/fileUtils.js";
 import { getGitInfo } from "./utils/gitInfo.js";
+import { parse, stringify } from 'smol-toml'
 
 const program = new Command();
 
@@ -30,8 +31,31 @@ program
   .option("--preview <lines>", "Only show the first N lines of each file")
   .parse(process.argv);
 
-const options = program.opts();
+let options = program.opts();
 const paths = program.args.length > 0 ? program.args : ["."];
+
+  if (paths.length === 0 || paths.length === 1 && paths[0] === ".") {
+    console.info("not specified paths, using current directory.");
+    // try to find toml config
+    const configPath = path.resolve(".repo-snapshot.toml");
+    if (fs.existsSync(configPath)) {
+      console.info("Found config file:", configPath);
+      const doc = fs.readFileSync(configPath, "utf-8");
+      let parsed = {};
+      try{
+        parsed = parse(doc);
+      }catch (error) {
+        console.error("Error parsing config file!");
+        process.exit(1);
+      }
+
+      options = { ...parsed, ...options }; // CLI options take precedence
+      console.info("Using options from config:", options);
+    }
+    else{
+      console.info("No config file found, using current directory with CLI options.");
+    }
+  }
 
 function parsePatterns(patterns?: string): string[] {
   if (!patterns) return [];
@@ -42,6 +66,7 @@ const includePatterns = parsePatterns(options.include);
 const excludePatterns = parsePatterns(options.exclude);
 
 async function main() {
+  
   const absPaths = paths.map((p) => path.resolve(p));
   console.error("Analyzing paths:", absPaths);
 
@@ -105,11 +130,11 @@ async function main() {
       return isRecent;
     });
   }
-  
+
   // Output information
   const rootPath = fs.statSync(absPaths[0]).isDirectory()
-  ? absPaths[0]
-  : path.dirname(absPaths[0]);
+    ? absPaths[0]
+    : path.dirname(absPaths[0]);
 
   let output = "# Repository Context\n\n";
   // File system path
