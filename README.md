@@ -111,7 +111,6 @@ repo-snapshot . --output output.md
 TOML configuration file `.repopal-config.toml` example:
 
 ```toml
-output = "output.txt"
 include = "**/*.ts"
 grep = "Apache"
 output = "output.md"
