@@ -101,14 +101,14 @@ repo-snapshot . --grep "Apache"
 # Shows only the first 15 lines of each file instead of full content
 repo-snapshot . --preview 15
 
-# With a .repopal-config.toml present in the repo root
+# With a .repo-snapshot-config.toml present in the repo root
 repo-snapshot .
 
 # CLI arguments override config values
 repo-snapshot . --output output.md
 ```
 
-TOML configuration file `.repopal-config.toml` example:
+TOML configuration file `.repo-snapshot-config.toml` example:
 
 ```toml
 include = "**/*.ts"
