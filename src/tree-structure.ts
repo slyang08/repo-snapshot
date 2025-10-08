@@ -10,8 +10,9 @@ export function buildTree(files: string[], root: string): string {
       // If root is a file, return the filename directly
       return path.basename(root);
     }
-  } catch (err) {
-    // Return an empty string or an error message when the directory or file does not exist
+  } catch (error) {
+    // Log error if root does not exist or stat fails
+    console.error(`Error: Unable to access root path "${root}".`, error);
     return "";
   }
 
@@ -20,8 +21,9 @@ export function buildTree(files: string[], root: string): string {
 
     try {
       entries = fs.readdirSync(dir, { withFileTypes: true });
-    } catch (err) {
-      // Skip if insufficient permissions or unable to read
+    } catch (error) {
+      // Log error when directory cannot be read
+      console.error(`Error: Unable to read directory "${dir}".`, error);
       return;
     }
 

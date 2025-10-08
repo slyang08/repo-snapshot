@@ -1,61 +1,32 @@
 #!/usr/bin/env node
-import { Command } from "commander";
-import { glob } from "glob";
-
 import fs from "fs";
 import path from "path";
 
-import { buildTree } from "./utils/treeStructure.js";
-import { getFileExtension, isRecentlyModified } from "./utils/fileUtils.js";
-import { getGitInfo } from "./utils/gitInfo.js";
-import { parse, stringify } from 'smol-toml'
+import { buildOutput } from "./output-builder.js";
+import { collectFiles } from "./file-collector.js";
+import { isRecentlyModified } from "./file-utils.js";
+import { parseCLI } from "./cli.js";
+import { parseTomlConfig } from "./toml-config.js";
 
-const program = new Command();
+let { options, paths } = parseCLI();
 
-program
-  .name("repo-snapshot")
-  .description("Package repository context into a single text file")
-  .version("0.1.0")
-  .argument("[paths...]", "Files or directories to analyze")
-  .option("-o, --output <file>", "Output file")
-  .option(
-    "--include <patterns>",
-    'Comma-separated glob patterns, e.g. "*.js,*.ts"'
-  )
-  .option(
-    "--exclude <patterns>",
-    'Comma-separated glob patterns, e.g. "node_modules/**,*.log"'
-  )
-  .option("-r, --recent [days]", "Only include files modified within the last N days")
-  .option("--grep <keyword>", "Only include files that contain the keyword")
-  .option("--preview <lines>", "Only show the first N lines of each file")
-  .parse(process.argv);
+if (paths.length === 0 || (paths.length === 1 && paths[0] === ".")) {
+  console.info("not specified paths, using current directory.");
+  // try to find toml config
+  try {
+    const tomlConfigOptions = parseTomlConfig();
 
-let options = program.opts();
-const paths = program.args.length > 0 ? program.args : ["."];
-
-  if (paths.length === 0 || paths.length === 1 && paths[0] === ".") {
-    console.info("not specified paths, using current directory.");
-    // try to find toml config
-    const configPath = path.resolve(".repo-snapshot.toml");
-    if (fs.existsSync(configPath)) {
-      console.info("Found config file:", configPath);
-      const doc = fs.readFileSync(configPath, "utf-8");
-      let parsed = {};
-      try{
-        parsed = parse(doc);
-      }catch (error) {
-        console.error("Error parsing config file!");
-        process.exit(1);
-      }
-
-      options = { ...parsed, ...options }; // CLI options take precedence
+    if (Object.keys(tomlConfigOptions).length > 0) {
+      options = { ...tomlConfigOptions, ...options }; // CLI options take precedence
       console.info("Using options from config:", options);
-    }
-    else{
+    } else {
       console.info("No config file found, using current directory with CLI options.");
     }
+  } catch (error) {
+    console.error("Error parsing config file!", (error as Error).message);
+    process.exit(1);
   }
+}
 
 function parsePatterns(patterns?: string): string[] {
   if (!patterns) return [];
@@ -66,135 +37,62 @@ const includePatterns = parsePatterns(options.include);
 const excludePatterns = parsePatterns(options.exclude);
 
 async function main() {
-  
-  const absPaths = paths.map((p) => path.resolve(p));
-  console.error("Analyzing paths:", absPaths);
+  const absolutePaths = paths.map((p) => path.resolve(p));
+  console.error("Analyzing paths:", absolutePaths);
 
-  if (!absPaths[0]) {
+  if (!absolutePaths[0]) {
     console.error("No valid path provided");
     process.exit(1);
   }
 
-  // Collect files with glob
-  let fileList: string[] = [];
-  for (const p of absPaths) {
-    const stat = fs.statSync(p);
-    if (stat.isDirectory()) {
-      const patterns = includePatterns.length > 0 ? includePatterns : ["*", "**/*"];
-      for (const pattern of patterns) {
-        const matches = await glob(pattern, {
-          cwd: p,
-          absolute: true,
-          nodir: true,
-          ignore: excludePatterns,
-        });
-        fileList.push(...matches);
-      }
-    } else {
-      fileList.push(p);
-    }
-  }
-
   // Deduping + Sorting
-  fileList = [...new Set(fileList)];
-  fileList.sort();
+  let collectedFiles = await collectFiles(absolutePaths, includePatterns, excludePatterns);
 
   // Output file contents
-  let totalLines = 0;
   const skippedFiles: string[] = [];
-  let matchedFiles: string[] = [];
+  let grepMatchedFiles: string[] = [];
 
   // If --grep is specified, first filter out files matching the content.
   if (options.grep) {
-    for (const file of fileList) {
+    for (const file of collectedFiles) {
       try {
         const content = fs.readFileSync(file, "utf-8");
         const regex = new RegExp(options.grep, "i");
         if (regex.test(content)) {
-          matchedFiles.push(file);
+          grepMatchedFiles.push(file);
         }
       } catch (error) {
         skippedFiles.push(file);
       }
     }
-    fileList = matchedFiles;
+    collectedFiles = grepMatchedFiles;
   }
 
   // Filter for recent files if --recent flag is set
-  let recentFileCount = 0;
+  let recentFilesCount = 0;
   if (options.recent) {
-    const recentDays = isNaN(options.recent) ? 7 : parseInt(options.recent, 10) || 7; // Parse the days parameter, default to 7
-    fileList = fileList.filter(file => {
+    // Parse the days parameter, default to 7
+    const recentDays = isNaN(options.recent) ? 7 : parseInt(options.recent, 10) || 7;
+    collectedFiles = collectedFiles.filter(file => {
       const isRecent = isRecentlyModified(file, recentDays);
-      if (isRecent) recentFileCount++;
+      if (isRecent) recentFilesCount++;
       return isRecent;
     });
   }
 
   // Output information
-  const rootPath = fs.statSync(absPaths[0]).isDirectory()
-    ? absPaths[0]
-    : path.dirname(absPaths[0]);
+  const rootPath = fs.statSync(absolutePaths[0]).isDirectory()
+    ? absolutePaths[0]
+    : path.dirname(absolutePaths[0]);
 
-  let output = "# Repository Context\n\n";
-  // File system path
-  output += "## File System Location\n\n";
-  output += absPaths.join("\n") + "\n\n";
-
-  // Git Info
-  output += await getGitInfo(absPaths[0]);
-
-  // Build tree structure
-  output += "## Structure\n\n";
-  output += path.basename(rootPath) + "/\n";
-  output += buildTree(fileList, rootPath);
-  output += "\n\n";
-
-  // File Contents
-  if (fileList.length > 0) {
-    output += "## File Contents\n\n";
-    for (const file of fileList) {
-      const relPath = path.relative(absPaths[0], file);
-      try {
-        const content = fs.readFileSync(file, "utf-8");
-        const lines = content.split("\n");
-        let displayedLines = lines;
-
-        if (options.preview) {
-          const previewCount = parseInt(options.preview, 10);
-          if (!isNaN(previewCount) && previewCount > 0 && lines.length > previewCount) {
-            displayedLines = lines.slice(0, previewCount);
-            displayedLines.push("...(truncated)");
-          }
-        }
-        output += `### File: ${relPath}\n`;
-        // Simply select language based on file extension highlight
-        output += "```" + getFileExtension(file) + "\n";
-        output += displayedLines.join("\n") + "\n```\n\n";
-        totalLines += displayedLines.length;
-      } catch {
-        // If no grep, shows error messages
-        if (!options.grep) {
-          output += `### File: ${relPath}\n[Could not read file]\n\n`;
-          output += "```\n\n";
-          skippedFiles.push(file);
-        }
-      }
-    }
-  }
-
-  // Summary
-  output += "## Summary\n";
-  if (options.grep) {
-    output += `- Files matched: ${matchedFiles.length}\n`;
-  } else {
-    output += `- Total files: ${fileList.length}\n`;
-  }
-  output += `- Total lines: ${totalLines}\n`;
-  if (options.recent) {
-    const recentDays = isNaN(options.recent) ? 7 : parseInt(options.recent, 10) || 7;
-    output += `- Recent files (last ${recentDays} days): ${recentFileCount}\n`;
-  }
+  const output = await buildOutput({
+    absolutePaths,
+    collectedFiles,
+    options,
+    rootPath,
+    recentFilesCount,
+    grepMatchedFiles
+  });
 
   // Report skipped files to stderr
   if (skippedFiles.length > 0) {
