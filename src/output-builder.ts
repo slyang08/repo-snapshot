@@ -1,8 +1,8 @@
 // src/utils/outputBuilder.ts
 import fs from "fs";
 import path from "path";
+import { buildTree, TokenCountOptions } from "./tree-structure.js";
 import { getFileExtension } from "./file-utils.js";
-import { buildTree } from "./tree-structure.js";
 import { getGitInfo } from "./git-info.js";
 
 interface OutputOptions {
@@ -32,7 +32,7 @@ export async function buildOutput({
   addHeader(lines);
   addFileSystemLocation(lines, absolutePaths);
   await addGitInfo(lines, absolutePaths[0]);
-  addTreeStructure(lines, collectedFiles, rootPath);
+  addTreeStructure(lines, collectedFiles, rootPath, options);
 
   // Obtain the valid line count returned by addFileContents
   const totalLines = await addFileContents(lines, collectedFiles, absolutePaths[0], options);
@@ -58,10 +58,15 @@ async function addGitInfo(lines: string[], repoPath: string) {
   lines.push(gitInfo.trim(), "");
 }
 
-function addTreeStructure(lines: string[], files: string[], root: string) {
+function addTreeStructure(lines: string[], files: string[], root: string, options: any) {
   lines.push("## Structure", "");
   lines.push(path.basename(root) + "/");
-  lines.push(buildTree(files, root), "");
+
+  const tokenOptions: TokenCountOptions = options.tokenCountTree
+    ? { enabled: true, threshold: options.tokenCountTree }
+    : { enabled: false };
+
+  lines.push(buildTree(files, root, tokenOptions), "");
 }
 
 async function addFileContents(
