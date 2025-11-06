@@ -11,7 +11,8 @@ dist/
 # system
 .DS_Store
 
-# output/test files
+# output/test folder/files
+coverage/
 *.txt
 
 # logs
