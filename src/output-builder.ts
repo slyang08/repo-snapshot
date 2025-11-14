@@ -134,7 +134,7 @@ async function addFileContents(
   return totalLines;
 }
 
-function getPreviewLines(
+export function getPreviewLines(
   content: string,
   previewOption: string | undefined,
 ): string[] {

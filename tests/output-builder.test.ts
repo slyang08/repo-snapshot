@@ -1,6 +1,8 @@
 import * as path from "path";
 import { beforeEach, describe, expect, it, MockedFunction, vi } from "vitest";
 
+import { getPreviewLines } from "../src/output-builder.js";
+
 // 🧩 Global Mock fs (must be placed at the very top)
 vi.mock("fs", async () => {
   const actual = await vi.importActual<typeof import("fs")>("fs");
@@ -125,5 +127,58 @@ describe("test function: buildOutput", () => {
     expect(result).toContain("## Summary");
     expect(result).toMatch(/Total files:\s*0/);
     expect(result).toMatch(/Total lines:\s*0/);
+  });
+});
+
+describe("getPreviewLines", () => {
+  const sampleContent = "line1\nline2\nline3\nline4\nline5";
+
+  it("returns all lines if no previewOption", () => {
+    expect(getPreviewLines(sampleContent, undefined)).toEqual([
+      "line1",
+      "line2",
+      "line3",
+      "line4",
+      "line5",
+    ]);
+  });
+
+  it("returns all lines if previewOption is invalid", () => {
+    expect(getPreviewLines(sampleContent, "abc")).toEqual([
+      "line1",
+      "line2",
+      "line3",
+      "line4",
+      "line5",
+    ]);
+  });
+
+  it("returns truncated lines if previewOption less than total lines", () => {
+    expect(getPreviewLines(sampleContent, "3")).toEqual([
+      "line1",
+      "line2",
+      "line3",
+      "...(truncated)",
+    ]);
+  });
+
+  it("returns full content if previewOption >= total lines", () => {
+    expect(getPreviewLines(sampleContent, "10")).toEqual([
+      "line1",
+      "line2",
+      "line3",
+      "line4",
+      "line5",
+    ]);
+  });
+
+  it("returns full content if previewOption is zero", () => {
+    expect(getPreviewLines(sampleContent, "0")).toEqual([
+      "line1",
+      "line2",
+      "line3",
+      "line4",
+      "line5",
+    ]);
   });
 });
