@@ -48,7 +48,8 @@ function getTokenCount(filePath: string, options?: TokenCountOptions): number {
   if (!options?.enabled) return 0;
   try {
     const content = fs.readFileSync(filePath, "utf-8");
-    return content.split(/\s+/).filter(Boolean).length;
+    const charCount = content.length;
+    return Math.ceil(charCount / 4);
   } catch {
     return 0;
   }
