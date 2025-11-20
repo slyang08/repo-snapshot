@@ -15,6 +15,22 @@ A Command-line interface (CLI) tool to package and summarize repository structur
 
 ## Installation
 
+### Installation for User
+
+1. With `npm`:
+
+```
+npm install -g repo-snapshot
+```
+
+2. With `pnpm`:
+
+```
+pnpm add -g repo-snapshot
+```
+
+### Installation for Developer
+
 To install as a global command line tool via two ways with `npm` or `pnpm`:
 
 ```
