@@ -24,6 +24,10 @@
     "test:watch": "vitest --watch",
     "coverage": "vitest run --coverage"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/slyang08/repo-snapshot.git"
+  },
   "keywords": [],
   "author": "Sheng-Lin Yang",
   "license": "Apache-2.0",
