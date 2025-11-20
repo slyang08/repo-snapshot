@@ -2,8 +2,12 @@
   "name": "repo-snapshot",
   "version": "0.1.0",
   "description": "",
-  "main": "index.js",
+  "main": "./dist/index.js",
+  "types": "dist/index.d.ts",
   "type": "module",
+  "files": [
+    "dist"
+  ],
   "bin": {
     "repo-snapshot": "./dist/index.js"
   },
